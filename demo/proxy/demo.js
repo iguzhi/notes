@@ -9,6 +9,7 @@ const createServerCertificate = require('./cert');
 function connect(clientRequest, clientSocket, head) {
     // 连接目标服务器
     const targetSocket = net.connect(this.fakeServerPort, '127.0.0.1', () => {
+        console.log(1111111111)
         // 通知客户端已经建立连接
         clientSocket.write(
             'HTTP/1.1 200 Connection Established\r\n'
@@ -21,6 +22,25 @@ function connect(clientRequest, clientSocket, head) {
         clientSocket.pipe(targetSocket).pipe(clientSocket);
     });
 }
+
+// function connect(clientRequest, clientSocket, head) {
+//     const protocol = clientRequest.connection && clientRequest.connection.encrypted ? 'https:' : 'http:';
+//     const { port = 443, hostname } = url.parse(`${protocol}//${clientRequest.url}`);
+
+//     // 连接目标服务器
+//     const targetSocket = net.connect(port, '127.0.0.1', () => {
+//         // 通知客户端已经建立连接
+//         clientSocket.write(
+//             'HTTP/1.1 200 Connection Established\r\n'
+//                 + 'Proxy-agent: MITM-proxy\r\n'
+//                 + '\r\n',
+//         );
+
+//         // 建立通信隧道，转发数据
+//         targetSocket.write(head);
+//         clientSocket.pipe(targetSocket).pipe(clientSocket);
+//     });
+// }
 
 /** 创建支持多域名的 https 服务 **/
 function createFakeHttpsServer(fakeServerPort = 0) {
@@ -47,7 +67,7 @@ function createFakeHttpsServer(fakeServerPort = 0) {
 
 function createProxyServer(proxyPort) {
     return new Promise((resolve, reject) => {
-        const serverCrt = createServerCertificate('localhost');
+        const serverCrt = createServerCertificate('127.0.0.1');
         const proxyServer = https.createServer({
             key: forge.pki.privateKeyToPem(serverCrt.key),
             cert: forge.pki.certificateToPem(serverCrt.cert),
@@ -55,7 +75,7 @@ function createProxyServer(proxyPort) {
 
         .on('error', reject)
         .listen(proxyPort, () => {
-            const proxyUrl = `https://localhost:${proxyPort}`;
+            const proxyUrl = `https://127.0.0.1:${proxyPort}`;
             console.log('启动代理成功，代理地址：', proxyUrl);
             resolve(proxyServer);
         });
@@ -64,6 +84,7 @@ function createProxyServer(proxyPort) {
 
 // 业务逻辑
 function requestHandle(req, res) {
+    console.log(22222222222)
     res.writeHead(200);
     res.end('hello world\n');
 }
@@ -86,4 +107,4 @@ process.on('uncaughtException', (err) => {
     console.error(err);
 });
 
-main(6666);
+main(1080);
