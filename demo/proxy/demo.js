@@ -7,9 +7,10 @@ const url = require('url');
 const createServerCertificate = require('./cert');
 
 function connect(clientRequest, clientSocket, head) {
+    console.log('aaaaa')
     // 连接目标服务器
     const targetSocket = net.connect(this.fakeServerPort, '127.0.0.1', () => {
-        console.log(1111111111)
+        console.log('bbbbb')
         // 通知客户端已经建立连接
         clientSocket.write(
             'HTTP/1.1 200 Connection Established\r\n'
@@ -45,7 +46,7 @@ function connect(clientRequest, clientSocket, head) {
 /** 创建支持多域名的 https 服务 **/
 function createFakeHttpsServer(fakeServerPort = 0) {
     return new Promise((resolve, reject) => {
-        const fakeServer = new https.Server({
+        const fakeServer = https.createServer({
             SNICallback: (hostname, callback) => {
                 const { key, cert } = createServerCertificate(hostname);
                 callback(
@@ -67,7 +68,7 @@ function createFakeHttpsServer(fakeServerPort = 0) {
 
 function createProxyServer(proxyPort) {
     return new Promise((resolve, reject) => {
-        const serverCrt = createServerCertificate('127.0.0.1');
+        const serverCrt = createServerCertificate('localhost');
         const proxyServer = https.createServer({
             key: forge.pki.privateKeyToPem(serverCrt.key),
             cert: forge.pki.certificateToPem(serverCrt.cert),
@@ -75,7 +76,7 @@ function createProxyServer(proxyPort) {
 
         .on('error', reject)
         .listen(proxyPort, () => {
-            const proxyUrl = `https://127.0.0.1:${proxyPort}`;
+            const proxyUrl = `https://localhost:${proxyPort}`;
             console.log('启动代理成功，代理地址：', proxyUrl);
             resolve(proxyServer);
         });
@@ -92,12 +93,16 @@ function requestHandle(req, res) {
 function main(proxyPort) {
     return Promise.all([
         createProxyServer(proxyPort),
-        createFakeHttpsServer(), // 使用随机端口，一般我们也不关心它的端口
+        createFakeHttpsServer(8002), // 使用随机端口，一般我们也不关心它的端口
     ]).then(([proxyServer, fakeServer]) => {
+        console.log(fakeServer.address().port)
         fakeServer.on('request', requestHandle);
-        proxyServer.on('connect', connect.bind({
-            fakeServerPort: fakeServer.address().port,
-        }));
+        proxyServer.on('connect', () => {
+            console.log('ccccc')
+            connect.bind({
+                fakeServerPort: fakeServer.address().port,
+            })();
+        });
     }).then(() => {
         console.log('everything is ok');
     });
@@ -107,4 +112,4 @@ process.on('uncaughtException', (err) => {
     console.error(err);
 });
 
-main(1080);
+main(8000);
